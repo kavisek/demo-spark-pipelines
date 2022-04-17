@@ -130,3 +130,5 @@ dmypy.json
 **/data/*.csv
 **/.vscode
 Makefile
+/.Jupyter
+/.local
