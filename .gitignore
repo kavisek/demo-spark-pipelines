@@ -132,3 +132,6 @@ dmypy.json
 Makefile
 /.Jupyter
 /.local
+/.ipython
+/.kaggle
+/.ssh

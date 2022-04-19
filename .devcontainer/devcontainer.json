@@ -1,0 +1,15 @@
+{
+"build": { 
+    "dockerfile": "../Dockerfile", 
+    "context":"../"
+    },
+"forwardPorts": [
+	8000
+],
+"mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.config,target=/home/jovyan/.config,type=bind,consistency=cached",
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/jovyan/.ssh,type=bind,consistency=cached"
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.kaggle,target=/home/jovyan/.kaggle,type=bind,consistency=cached"
+],
+"extensions": ["ms-toolsai.jupyter-keymap", "ms-python.python"]
+}
