@@ -2,13 +2,23 @@ import pytest
 
 from jobs.solana import SparkJob
 from pyspark.sql.dataframe import DataFrame as DataFrame
+from pyspark.sql.functions import lit, col, round
+from pyspark.sql.functions import year, month, dayofmonth
+from pyspark.sql.functions import max, min, sum, mean, when, udf, rand, avg, count
+
+
+# PYTEST EXAMPLES
+# THE following are example of test your can have for your pyspark dataframes. 
+# This is not an extensive list, but a sample of components you can test.
+# (i.e columns, udfs, datatype, distributions) and testing concepts 
+# (i.e dataframe fixtures, and parameterized fixtures)
 
 def test_dummy() -> None:
     """Dummyp Test"""
     pass
 
 
-
+# Simple Fixture Test
 @pytest.fixture
 def sample_df() -> DataFrame:
     """Create dummy dataframe fixture."""
@@ -25,7 +35,7 @@ def timeseries_df() -> DataFrame:
     return df
 
 
-def test_sample_df_columns(sample_df) -> None:
+def test_sample_df_columns(sample_df: DataFrame) -> None:
     """ Test sample df columns"""
     columns = [
         "language",
@@ -34,7 +44,7 @@ def test_sample_df_columns(sample_df) -> None:
     return sample_df.columns == columns
 
 
-def test_timeseries_df_columns(timeseries_df) -> None:
+def test_timeseries_df_columns(timeseries_df: DataFrame) -> None:
     """Test the colunmns within our kaggle dataset have not changed."""
 
     columns = [
@@ -57,7 +67,20 @@ def test_timeseries_df_columns(timeseries_df) -> None:
     
     
 
+# Parameterized Fixture Tests
+# Take in an parameter and generate a dataframe.
+
+@pytest.fixture(params=[-1, -2, -3])
+def select_df(request) -> DataFrame:
+    job = SparkJob()
+    df = job.create_dataframe()
+    df = df.withColumn ("user_counts", lit(request.param))
+    return df
 
 
+def test_select_df(select_df: DataFrame) -> None:
+    select_df.show(4)
+    assert 1 == 1, 'is not dataframe'
 
-    
+
+# UDF TEST
