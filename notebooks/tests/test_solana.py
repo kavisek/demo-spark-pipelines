@@ -29,4 +29,3 @@ def test_solana_columns():
     job = SparkJob()
     df = job.extract_timeseries()
     assert df.columns == columns
-    
