@@ -392,7 +392,7 @@ class SparkJob:
     
     
     def solana_sql_udf(self) -> None:
-        """Using UDF on SQL."""
+        """Using UDF on SPARK SQL."""
         df = self.preprocessing_timeseries()
         
         def neg(x:int) -> int:
