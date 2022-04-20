@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit, col, round
 from pyspark.sql.functions import year, month, dayofmonth
-from pyspark.sql.functions import max, min, sum, mean, when, udf
+from pyspark.sql.functions import max, min, sum, mean, when, udf, rand, avg, count
 from pyspark.sql.types import IntegerType, DoubleType
 from pyspark.rdd import RDD
 from pyspark.sql.dataframe import DataFrame as DataFrame
@@ -17,12 +17,22 @@ class SparkJob:
         )
         
         self.spark.conf.set("spark.sql.execution.arrow.enabled", "true")
+        self.spark.conf.set("spark.sql.shuffle.partitions", "5")
+        self.spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")
         
         self.input_directory = "datasets/psycon/solana-usdt-to-20220-4-historical-data"
         
     def stop(self) -> None:
         """Stop the Spark Session"""
         self.spark.stop()
+    
+    # Admin 
+    
+    def shuffle_partitions(self):
+        """Return the number of shuffle partitions"""
+        return self.spark.conf.get("spark.sql.shuffle.partitions")
+        
+    # Dataset
 
     def extract_timeseries(self) -> DataFrame:
         # Read in dataframe
@@ -90,14 +100,14 @@ class SparkJob:
     def solana_groupby_avg(self) -> None:
         """Groupby and return max value of all columns."""
         df = self.preprocessing_timeseries()
-
+        
         # Create new column.
         df = df.withColumn("month", month(df["open_time"]))
 
         df = df.groupBy("month").max()
-        df.show(4)
+        df.show()
 
-    def solana_groupby_mean_single(self) -> None:
+    def solana_groupby_count_single(self) -> None:
         """Groupby mean single column."""
         df = self.preprocessing_timeseries()
 
@@ -105,8 +115,8 @@ class SparkJob:
         df = df.withColumn("month", month(df["open_time"]))
 
         # Groupby: mean sinlge column
-        df = df.groupBy("month").mean("open")
-        df.show(4)
+        df = df.groupBy("month").count()
+        df.show()
 
     def solana_groupby_min_multiple(self) -> None:
         """Groupby get mins from dataset."""
@@ -117,7 +127,7 @@ class SparkJob:
 
         # Grouby: min multiple columns.
         df = df.groupBy("month").min("open", "close")
-        df.show(4)
+        df.show()
 
     def solana_groupby_custom(self) -> None:
         """Groupby with custom aggregation."""
@@ -133,13 +143,44 @@ class SparkJob:
             sum("volume").alias("sum_volume"),
             mean("number_of_trades").alias("mean_number_of_trades"),
         )
-
         # Sort/Orderby
         df = df.sort(df.mean_number_of_trades.desc(), df.max_open.asc())
 
-        df.show(4)
+        df.show()
         
         
+    # Group By (Salted)
+    
+    def solana_groupby_count_single_salted(self) -> None:
+        """
+        Salt a DataFrame to complete Groupby.
+        
+        Group by once with salted key for better partitioning.
+        Group again a second time to aggregate results.
+        
+        """
+        df = self.preprocessing_timeseries()
+        print(df.count())
+        
+        # Create new column.
+        df = df.withColumn("month", month(df["open_time"]))
+        
+        # Create salt value.
+        salval = round(rand() * int(self.shuffle_partitions()) - 1)
+        
+        # Create salt column.
+        df = df.withColumn("salt", lit(salval).cast(IntegerType()))
+        
+        # Group by with salt
+        print(df.count())
+        df = df.groupby("month","salt").agg(count("month").alias("count"))
+        
+        # Run a group by again on the salted aggregration. Sum the counts.
+        df = df.groupby("month").agg(sum("count").alias("count")
+        
+        df.show()
+                                    
+                                     
     # DISTINCT
 
     def solana_months_distinct(self) -> None:
@@ -337,7 +378,7 @@ class SparkJob:
         
         
     def solana_alias_join(self) -> DataFrame:
-        """Alias to dataframes"""
+        """Join DataFrames."""
         
         # Alias dataframes.
         dfa = self.solana_alias(alias='a')
