@@ -28,9 +28,27 @@ class SparkJob:
 
     # Admin
 
-    def shuffle_partitions(self):
+    def shuffle_partitions(self) -> int:
         """Return the number of shuffle partitions"""
         return self.spark.conf.get("spark.sql.shuffle.partitions")
+    
+    
+    # Create Dataframe
+    
+    def create_dataframe(self) -> DataFrame:
+        """Create a Dataframe from raw values."""
+        
+        data = [("Java", "20000"), ("Python", "100000"), ("Scala", "3000")]
+        
+        # Created RDD
+        rdd = self.spark.sparkContext.parallelize(data)
+        
+        # Create Dataframe
+        columns = ["language","users_count"]
+        df = rdd.toDF(columns)
+        
+        return df
+        
 
     # Dataset
 
