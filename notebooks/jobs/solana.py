@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit, col, round
 from pyspark.sql.functions import year, month, dayofmonth
-from pyspark.sql.functions import max, min, sum, mean
+from pyspark.sql.functions import max, min, sum, mean, when
 from pyspark.sql.types import IntegerType, DoubleType
 
 
@@ -12,7 +12,14 @@ class SparkJob:
             .config("spark.some.config.option", "some-value")
             .getOrCreate()
         )
-        self.input_directory = "datasets/psycon/solana-usdt-to-20220-4-historical-data"
+        
+        self.spark.conf.set("spark.sql.execution.arrow.enabled", "true")
+        
+        self.input_directory = "datasets/psycon/solona-usdt-to-20220-4-historical-data"
+        
+    def stop(self):
+        """Stop the Spark Session"""
+        self.spark.stop()
 
     def extract_timeseries(self):
         # Read in dataframe
@@ -51,31 +58,34 @@ class SparkJob:
         # df.printSchema()
         return df
 
-    def solana_head(self):
+    def solona_head(self):
         """Head of Alias."""
         df = self.preprocessing_timeseries()
         df = df.alias("s")
         df.printSchema()
         df.show(10)
 
-    def solana_aliased(self):
+    def solona_aliased(self):
         """Alias the dataset."""
         df = self.preprocessing_timeseries()
         df = df.alias("s")
         df.printSchema()
         df.show(10)
 
-    def solana_counts(self):
+    def solona_counts(self):
         """Provide the shape of the dataset."""
         df = self.preprocessing_timeseries()
         print(f"count: {df.count()}, {len(df.columns)}")
 
-    def solana_describe(self):
+    def solona_describe(self):
         """Describe the dataset."""
         df = self.preprocessing_timeseries()
         df.describe().show()
 
-    def solana_groupby_avg(self):
+        
+    # GROUP BY
+        
+    def solona_groupby_avg(self):
         """Groupby and return max value of all columns."""
         df = self.preprocessing_timeseries()
 
@@ -85,7 +95,7 @@ class SparkJob:
         df = df.groupBy("month").max()
         df.show(4)
 
-    def solana_groupby_mean_single(self):
+    def solona_groupby_mean_single(self):
         """Groupby mean single column."""
         df = self.preprocessing_timeseries()
 
@@ -96,7 +106,7 @@ class SparkJob:
         df = df.groupBy("month").mean("open")
         df.show(4)
 
-    def solana_groupby_min_multiple(self):
+    def solona_groupby_min_multiple(self):
         """Groupby get mins from dataset."""
         df = self.preprocessing_timeseries()
 
@@ -107,7 +117,7 @@ class SparkJob:
         df = df.groupBy("month").min("open", "close")
         df.show(4)
 
-    def solana_groupby_custom(self):
+    def solona_groupby_custom(self):
         """Groupby with custom aggregation."""
         df = self.preprocessing_timeseries()
 
@@ -126,8 +136,12 @@ class SparkJob:
         df = df.sort(df.mean_number_of_trades.desc(), df.max_open.asc())
 
         df.show(4)
+        
+        
+    # DISTINCT
 
     def solona_months_distinct(self):
+        """Distinct Operation"""
         df = self.preprocessing_timeseries()
 
         # Create new column.
@@ -135,7 +149,85 @@ class SparkJob:
 
         df = df.select("month").distinct()
         df.show()
+    
+    
+    # OTHERWISE
+    
+    def solona_when(self):
+        """When Operation"""
+        df = self.preprocessing_timeseries()
+        df = df.select("open",when(df.open == 3, 1).otherwise(0).alias("case1"))
+        return df
+    
+    
+    def solona_multiple_when(self):
+        """Multilpe When Operation with different Conditions"""
+        df = self.preprocessing_timeseries()
+        df = df.select("volume",
+               "open",
+               when((df.volume > 5000) | (df.volume < 1000) , 1).otherwise(0).alias("case1"),
+               when((df.volume > 2500) & (df.open == 3) , 1).otherwise(0).alias("case2")
+                )
+        return df
+    
+    
+    # LIKE, StartsWith, EndsWith
+    
+    def solona_like(self):
+        """Like Operation on String Colunmns"""
+        df = self.preprocessing_timeseries()
+        df = df.select("open",when(df.open == 3, "normal").otherwise("not normal").alias("case1"))
+        df = df.select("open", "case1", df.case1.like("%not%").alias('likecase1'))
+        return df
+    
+    def solona_startswith(self):
+        """StartWith Operation on String Colunmns"""
+        df = self.preprocessing_timeseries()
+        df = df.select("open",when(df.open == 3, "normal").otherwise("not normal").alias("case1"))
+        df = df.select("open", "case1", df.case1.startswith("not").alias('startswithcase1'))
+        return df
+    
+    def solona_endswith(self):
+        """EndsWith Operation on String Colunmns"""
+        df = self.preprocessing_timeseries()
+        df = df.select("open",when(df.open == 3, "normal").otherwise("not normal").alias("case1"))
+        df = df.select("open", "case1", df.case1.endswith("normal").alias('endswithcase1'))
+        return df
 
+    def solona_endswith(self):
+        """EndsWith Operation on String Colunmns"""
+        df = self.preprocessing_timeseries()
+        df = df.select("open",when(df.open == 3, "normal").otherwise("not normal").alias("case1"))
+        df = df.select("open", "case1", df.case1.endswith("normal").alias('endswithcase1'))
+        return df
+    
+    
+    # DROP
+    
+    def solona_drop(self):
+        """Drop Columns"""
+        df = self.preprocessing_timeseries()
+        df = df.drop("open","close")
+        return df
+    
+    # NULLS
+    
+    def solona_replace(self):
+        """Replace values"""
+        df = self.preprocessing_timeseries()
+        df = df.replace(3,3000)
+        return df
+    
+    def solona_nulls(self):
+        """Replace values with nulls"""
+        df = self.preprocessing_timeseries()
+        # df = df.replace(3,None)
+        return df
+    
+    
+        
+    # FILTER AND UNION
+    
     def solona_split_dataframes(self):
         """Split Dataframes"""
         df = self.preprocessing_timeseries()
@@ -157,3 +249,42 @@ class SparkJob:
         df123 = df1.union(df2).union(df3)
         print(f"d123: counts: {df123.count()}")
         df123.show(10)
+        
+        
+    # TEMP VIEWS
+    
+    def solona_temp_view(self):
+        """Create a Temp View of the dataset"""
+        df = self.extract_timeseries()
+        df.createOrReplaceTempView("solona")
+        self.spark.sql("select * from solona").show(3)
+
+        
+    # SPARK DATAFRAME TO OTHER DATA STRUCTURES
+    
+    def solona_to_pandas(self):
+        """Spark Dataframe to Pandas Dataframe"""
+        df = self.extract_timeseries()
+        pdf = df.toPandas()
+        return pdf
+        
+        
+    def solona_to_rdd(self):
+        """Spark Dataframe to RDD"""
+        df = self.extract_timeseries()
+        rdd = df.rdd
+        return rdd
+    
+    
+    def solona_to_json(self):
+        """Spark Dataframe to JSON"""
+        df = self.extract_timeseries()
+        json = df.toJSON().first()
+        return json
+    
+    # EXPLAIN
+    
+    def solona_explain(self):
+        """Explain Spark Plan"""
+        df = self.preprocessing_timeseries()
+        df.explain()
