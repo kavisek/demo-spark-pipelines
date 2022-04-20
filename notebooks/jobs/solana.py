@@ -1,13 +1,13 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit, col, round
 from pyspark.sql.functions import year, month, dayofmonth
-from pyspark.sql.functions import max, min, sum, mean, when
+from pyspark.sql.functions import max, min, sum, mean, when, udf
 from pyspark.sql.types import IntegerType, DoubleType
 from pyspark.rdd import RDD
 from pyspark.sql.dataframe import DataFrame as DataFrame
 from pandas.core.frame import DataFrame as PandasDataframe
 
-
+    
 class SparkJob:
     def __init__(self):
         self.spark = (
@@ -376,6 +376,31 @@ class SparkJob:
         return dfc
     
     
+    # UDFs
     
+    def solana_udf(self) -> DataFrame:
+        """Creating a UDF and with Spark '.' syntaxs """
+        df = self.preprocessing_timeseries()
+        
+        # Create a UDF
+        neg = udf(lambda x: -abs(x), IntegerType())
+        
+        # Use the UDF.
+        df = df.select("open", neg("open"), neg("open").alias('neg'))
+        
+        return df 
+    
+    
+    def solana_sql_udf(self) -> None:
+        """Using UDF on SQL."""
+        df = self.preprocessing_timeseries()
+        
+        def neg(x:int) -> int:
+            """ int to negative int """
+            return -abs(x)
+    
+        self.spark.udf.register("neg", neg ,  IntegerType())
+        df.createOrReplaceTempView("data")
+        self.spark.sql("select open, neg(open) as neg_open from data").show(10)
     
     
