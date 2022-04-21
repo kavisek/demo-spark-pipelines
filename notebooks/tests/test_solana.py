@@ -72,6 +72,7 @@ def test_timeseries_df_columns(timeseries_df: DataFrame) -> None:
 
 @pytest.fixture(params=[-1, -2, -3])
 def select_df(request) -> DataFrame:
+    """Parameterized DataFrame"""
     job = SparkJob()
     df = job.create_dataframe()
     df = df.withColumn ("user_counts", lit(request.param))
@@ -79,8 +80,8 @@ def select_df(request) -> DataFrame:
 
 
 def test_select_df(select_df: DataFrame) -> None:
-    select_df.show(4)
-    assert 1 == 1, 'is not dataframe'
+    """Check if type is DataFrame"""
+    assert type(select_df) == DataFrame, 'select_df is not dataframe'
 
 
 # UDF TEST
