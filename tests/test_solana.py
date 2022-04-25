@@ -8,10 +8,11 @@ from pyspark.sql.functions import max, min, sum, mean, when, udf, rand, avg, cou
 
 
 # PYTEST EXAMPLES
-# THE following are example of test your can have for your pyspark dataframes. 
+# THE following are example of test your can have for your pyspark dataframes.
 # This is not an extensive list, but a sample of components you can test.
-# (i.e columns, udfs, datatype, distributions) and testing concepts 
+# (i.e columns, udfs, datatype, distributions) and testing concepts
 # (i.e dataframe fixtures, and parameterized fixtures)
+
 
 def test_dummy() -> None:
     """Dummyp Test"""
@@ -36,7 +37,7 @@ def timeseries_df() -> DataFrame:
 
 
 def test_sample_df_columns(sample_df: DataFrame) -> None:
-    """ Test sample df columns"""
+    """Test sample df columns"""
     columns = [
         "language",
         "users_count",
@@ -64,24 +65,23 @@ def test_timeseries_df_columns(timeseries_df: DataFrame) -> None:
 
     assert timeseries_df.columns == columns, "columns don't match"
 
-    
-    
 
 # Parameterized Fixture Tests
 # Take in an parameter and generate a dataframe.
+
 
 @pytest.fixture(params=[-1, -2, -3])
 def select_df(request) -> DataFrame:
     """Parameterized DataFrame"""
     job = SparkJob()
     df = job.create_dataframe()
-    df = df.withColumn ("user_counts", lit(request.param))
+    df = df.withColumn("user_counts", lit(request.param))
     return df
 
 
 def test_select_df(select_df: DataFrame) -> None:
     """Check if type is DataFrame"""
-    assert type(select_df) == DataFrame, 'select_df is not dataframe'
+    assert type(select_df) == DataFrame, "select_df is not dataframe"
 
 
 # UDF TEST

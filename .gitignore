@@ -135,3 +135,6 @@ Makefile
 /.ipython
 /.kaggle
 /.ssh
+/.shh
+/.config
+.bash_history
