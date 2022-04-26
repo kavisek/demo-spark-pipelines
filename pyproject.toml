@@ -16,6 +16,7 @@ kaggle = "^1.5.12"
 pytest-cov = "^3.0.0"
 pytest-xdist = "^2.5.0"
 black = {extras = ["jupyter"], version = "^22.3.0"}
+isort = "^5.10.1"
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.8.2"
