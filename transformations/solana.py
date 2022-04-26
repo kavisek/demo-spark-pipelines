@@ -1,17 +1,20 @@
+from calendar import day_abbr
 import logging
 import os
 
 from pandas.core.frame import DataFrame as PandasDataframe
 from pyspark.rdd import RDD
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, Column
 from pyspark.sql.dataframe import DataFrame as DataFrame
 from pyspark.sql.functions import *
 from pyspark.sql.types import DoubleType, IntegerType
 from pyspark.sql.window import Window
 
+from typing import Tuple
+
 
 class SparkJob:
-    def __init__(self):
+    def __init__(self) -> None:
         self.spark = (
             SparkSession.builder.appName("Python Spark SQL basic example")
             .config("spark.some.config.option", "some-value")
@@ -31,7 +34,7 @@ class SparkJob:
 
     # Admin
 
-    def shuffle_partitions(self) -> int:
+    def shuffle_partitions(self) -> str:
         """Return the number of shuffle partitions"""
         return self.spark.conf.get("spark.sql.shuffle.partitions")
 
@@ -261,17 +264,6 @@ class SparkJob:
         )
         return df
 
-    def solana_endswith(self) -> DataFrame:
-        """EndsWith Operation on String Colunmns"""
-        df = self.preprocessing_timeseries()
-        df = df.select(
-            "open", when(df.open == 3, "normal").otherwise("not normal").alias("case1")
-        )
-        df = df.select(
-            "open", "case1", df.case1.endswith("normal").alias("endswithcase1")
-        )
-        return df
-
     # DROP
 
     def solana_drop(self) -> DataFrame:
@@ -288,7 +280,7 @@ class SparkJob:
         df = df.replace(3, 3000)
         return df
 
-    def solana_nulls(self):
+    def solana_nulls(self) -> DataFrame:
         """Replace values with nulls."""
         df = self.preprocessing_timeseries()
         df = df.replace(3, None)
@@ -310,7 +302,7 @@ class SparkJob:
 
     # FILTER AND UNION
 
-    def solana_split_dataframes(self):
+    def solana_split_dataframes(self) -> Tuple[DataFrame, DataFrame, DataFrame]:
         """Split Dataframes"""
         df = self.preprocessing_timeseries()
         df = df.withColumn("month", month(df["open_time"]))
@@ -449,7 +441,7 @@ class SparkJob:
         """Using UDF on SPARK SQL."""
         df = self.preprocessing_timeseries()
 
-        def neg(open: int) -> int:
+        def neg(open: Column) -> Column:
             """int to negative int"""
             return -abs(open)
 
@@ -462,7 +454,7 @@ class SparkJob:
         """Using multi-param UDF on SPARK SQL."""
         df = self.preprocessing_timeseries()
 
-        def neg(open: int, close: int) -> int:
+        def neg(open: Column, close: Column) -> Column:
             """add open and close and return the abosolute negative"""
             return -abs(open + close)
 
@@ -510,8 +502,7 @@ class SparkJob:
         # Creating a window.
         window = Window.orderBy(df["volume"].desc())
         
-        df = df.withColumn("row_number",row_number().over(window)) \
-            .show(truncate=False)
+        df = df.withColumn("row_number",row_number().over(window))
 
         return df
 
@@ -522,8 +513,7 @@ class SparkJob:
         # Creating a window.
         window = Window.partitionBy("high").orderBy(df["volume"].desc())
         
-        df = df.withColumn("row_number",row_number().over(window)) \
-            .show(truncate=False)
+        df = df.withColumn("row_number",row_number().over(window))
 
         return df
 

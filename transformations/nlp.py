@@ -10,7 +10,7 @@ from pyspark.sql.types import DoubleType, IntegerType
 
 
 class SparkJob:
-    def __init__(self):
+    def __init__(self) -> None:
         self.spark = (
             SparkSession.builder.appName("Python Spark SQL basic example")
             .config("spark.some.config.option", "some-value")

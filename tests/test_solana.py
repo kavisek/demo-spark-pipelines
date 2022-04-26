@@ -1,22 +1,6 @@
 import pytest
 from pyspark.sql.dataframe import DataFrame as DataFrame
-from pyspark.sql.functions import (
-    avg,
-    col,
-    count,
-    dayofmonth,
-    lit,
-    max,
-    mean,
-    min,
-    month,
-    rand,
-    round,
-    sum,
-    udf,
-    when,
-    year,
-)
+from pyspark.sql.functions import *
 
 from jobs.solana import SparkJob
 
@@ -77,6 +61,7 @@ def test_timeseries_df_columns(timeseries_df: DataFrame) -> None:
     ]
 
     assert timeseries_df.columns == columns, "columns don't match"
+    return
 
 
 # Parameterized Fixture Tests
