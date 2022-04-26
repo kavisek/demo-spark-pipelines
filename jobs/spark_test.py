@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import lit, col, round
-from pyspark.sql.types import IntegerType, DoubleType
+from pyspark.sql.functions import col, lit, round
+from pyspark.sql.types import DoubleType, IntegerType
 
 
 class SparkJob:

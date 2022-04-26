@@ -1,8 +1,7 @@
 # Time Series Dataset (Sample Dataset)
+import numpy as np
 import pandas as df
 import pandas as pd
-import numpy as np
-
 
 df = pd.DataFrame(
     data={"price": np.arange(0, 100), "cost": np.arange(0, 100)}, columns=["a", "b"]

@@ -1,11 +1,13 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import lit, col, round
-from pyspark.sql.functions import year, month, dayofmonth
-from pyspark.sql.functions import max, min, sum, mean, when, udf, rand, avg, count
-from pyspark.sql.types import IntegerType, DoubleType
-from pyspark.rdd import RDD
-from pyspark.sql.dataframe import DataFrame as DataFrame
+import logging
+import os
+
 from pandas.core.frame import DataFrame as PandasDataframe
+from pyspark.rdd import RDD
+from pyspark.sql import SparkSession
+from pyspark.sql.dataframe import DataFrame as DataFrame
+from pyspark.sql.functions import *
+from pyspark.sql.types import DoubleType, IntegerType
+from pyspark.sql.window import Window
 
 
 class SparkJob:
@@ -21,6 +23,7 @@ class SparkJob:
         self.spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")
 
         self.input_directory = "datasets/psycon/solana-usdt-to-20220-4-historical-data"
+        self.output_directory = "output"
 
     def stop(self) -> None:
         """Stop the Spark Session"""
@@ -446,10 +449,145 @@ class SparkJob:
         """Using UDF on SPARK SQL."""
         df = self.preprocessing_timeseries()
 
-        def neg(x: int) -> int:
+        def neg(open: int) -> int:
             """int to negative int"""
-            return -abs(x)
+            return -abs(open)
 
         self.spark.udf.register("neg", neg, IntegerType())
         df.createOrReplaceTempView("data")
         self.spark.sql("select open, neg(open) as neg_open from data").show(10)
+
+
+    def solana_sql_udf_multiple(self) -> None:
+        """Using multi-param UDF on SPARK SQL."""
+        df = self.preprocessing_timeseries()
+
+        def neg(open: int, close: int) -> int:
+            """add open and close and return the abosolute negative"""
+            return -abs(open + close)
+
+        self.spark.udf.register("neg", neg, IntegerType())
+        df.createOrReplaceTempView("data")
+        self.spark.sql("select open, neg(open, close) as neg_open from data").show(10)
+    
+    # SPLIT AND EXPLODE
+
+    def solana_split(self) -> DataFrame:
+        """Split Dataframe"""
+        df = self.solana_like()
+        df = df.select(split(df.case1,""))
+        return df
+
+
+    def solana_explode(self) -> DataFrame:
+        """Split Dataframe"""
+        df = self.solana_like()
+        df = df.select(explode(split(df.case1,"")))
+        return df
+
+    def solana_word_count(self) -> DataFrame:
+        """Split Dataframe"""
+        df = self.solana_like()
+        df = df.select(explode(split(df.case1,"")))
+        df = df.groupby('col').count()
+        return df
+
+    # REGEX REPLACE
+
+    def solana_regex_replace(self) -> DataFrame:
+        """Split Dataframe"""
+        df = self.solana_like()
+        df = df.select(regexp_replace(df.case1, "not", "pro"))
+        return df
+
+
+    # WINDOW FUNCTIONS (RANK & PARTITION BY)
+
+    def solana_rank_by(self) -> DataFrame:
+        """Rank By DataFrame"""
+        df = self.preprocessing_timeseries()
+
+        # Creating a window.
+        window = Window.orderBy(df["volume"].desc())
+        
+        df = df.withColumn("row_number",row_number().over(window)) \
+            .show(truncate=False)
+
+        return df
+
+    def solana_partition_rank_by(self) -> DataFrame:
+        """Partition Rank By DataFrame"""
+        df = self.preprocessing_timeseries()
+
+        # Creating a window.
+        window = Window.partitionBy("high").orderBy(df["volume"].desc())
+        
+        df = df.withColumn("row_number",row_number().over(window)) \
+            .show(truncate=False)
+
+        return df
+
+
+    # DATETIME
+
+    def solana_datetime(self) -> DataFrame:
+        """Reduce the features of the dataset."""
+        df = self.preprocessing_timeseries()
+        df = df.select('open_time','volume')
+        return df
+
+
+    def solana_datetime_functions(self) -> DataFrame:
+        """Datetime Transformation."""
+        df = self.solana_datetime()
+        df = df.select(
+            'open_time', 
+            current_date().alias('current_date') ,  
+            date_format(current_timestamp(),"yyyy MM dd").alias("current_date_formated"),
+            month('open_time').alias('month'),
+            year('open_time').alias('year'),
+            minute('open_time').alias('minute'),
+            'volume',
+        )
+        return df
+
+
+    # WRITE CSV, PARQUET
+
+    def solana_write_parquet(self) -> None:
+        """Writing data to multiple CSV files."""
+        df = self.preprocessing_timeseries()
+        df.printSchema()
+        df.write.option("header","true").mode("overwrite").parquet(f"../{self.output_directory}/write_parquet")
+        print('writing complete.')
+
+
+    def solana_write_csv(self) -> None:
+        """Writing data to multiple CSV files."""
+        df = self.preprocessing_timeseries()
+        df.write.option("header","true").mode("overwrite").csv(f"../{self.output_directory}/write_csv")
+        print('writing complete.')
+
+
+    def solana_write_csv_repartition(self) -> None:
+        """
+        Writing data to single CSV files.
+        
+        You can also use toPandas() or to_koalas().
+        """
+        df = self.preprocessing_timeseries()
+        df.repartition(1).write.option("header","true").mode("overwrite").csv(f"../{self.output_directory}/write_csv_repartition")
+        print('writing complete.')
+
+    # READ PARQUET
+
+    def solana_read_parquet(self) -> DataFrame:
+        """Read parquet file/folder."""
+        df = self.spark.read.option("header", True).parquet(
+            f"../{self.output_directory}/write_parquet"
+        )
+        df.printSchema()
+        return df
+
+
+    
