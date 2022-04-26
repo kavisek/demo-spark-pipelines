@@ -552,6 +552,18 @@ class SparkJob:
         return df
 
 
+    # PIVOT 
+
+    def solana_pivot(self) -> DataFrame:
+        """Pivot Table"""
+        df = self.solana_datetime_functions()
+        df = df.groupby("minute") \
+        .pivot("month") \
+        .sum('volume')
+        return df
+
+
+
     # WRITE CSV, PARQUET
 
     def solana_write_parquet(self) -> None:
